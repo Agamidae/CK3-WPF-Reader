@@ -1,0 +1,28 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CK3_WPF_Reader"
+        xmlns:Synthesis="clr-namespace:System.Speech.Synthesis;assembly=System.Speech" x:Class="CK3_WPF_Reader.MainWindow"
+        mc:Ignorable="d"
+        Title="CK3 Reader" Height="423" Width="354" FontSize="20">
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" CanVerticallyScroll="True" Grid.ColumnSpan="2" Margin="20,20,20,21" MinHeight="200" ScrollViewer.CanContentScroll="True">
+        <Label x:Name="lblStatus" Content="Loading..." Margin="0,0,0,5" Padding="0,5,0,5" FontSize="20"/>
+        <Label x:Name="SpeechRate" Content="Speech Rate:" Width="287" Padding="0,5,0,5"/>
+        <Slider x:Name="speechSlider" Minimum="-10" SmallChange="1" ValueChanged="speechSlider_ValueChanged" Value="5" TickPlacement="BottomRight"/>
+        <Label x:Name="SpeechVolume" Content="Speech Volume:" Width="287" Padding="0,5,0,5"/>
+        <Slider x:Name="volumeSlider" SmallChange="10" ValueChanged="volumeSlider_ValueChanged" Value="60" Maximum="100" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight"/>
+        <Label Content="Voice:" Width="287" Padding="0,5,0,5"/>
+        <Label x:Name="VoicesBox" Width="287" HorizontalAlignment="Left" Padding="0,5,0,5" Margin="0,0,0,5">
+            <ComboBox x:Name="VoiceBox" Width="287" SelectionChanged="VoiceBox_SelectionChanged">
+            </ComboBox>
+        </Label>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+            <RadioButton x:Name="DebugButton" Content="Debug log" IsChecked="True" Margin="0,0,20,0" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+            <RadioButton x:Name="ErrorButton" Content="Error log" Margin="0,0,20,0" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+        </StackPanel>
+        <Label Content="Error log may be more responsive" Padding="0,5,0,5" Opacity="0.5" Margin="0,0,0,15" FontSize="16" HorizontalContentAlignment="Stretch" HorizontalAlignment="Left"/>
+        <Button Content="Test TTS" Click="Button_Click" Margin="0,0,0,10"/>
+    </StackPanel>
+</Window>
