@@ -132,7 +132,8 @@ namespace CK3_WPF_Reader
 
             if (System.IO.File.Exists(errorLog))
             {
-                lblStatus.Content = "✔️ ready, reading "+ Properties.Settings.Default.log + " log";
+                lblStatus.Text = "✔️ ready, reading "+ Properties.Settings.Default.log + " log";
+                lblStatus.Foreground = Brushes.Green;
 
             }
 
@@ -234,33 +235,40 @@ namespace CK3_WPF_Reader
 
                     if (line != null)
                     {
-                        if (line.Contains(beginPattern))
+                        if (line.Contains("<stop reading>"))
                         {
-                            eventText = string.Empty;
-                            startMessage = true;   
+                            StopSpeech();
                         }
-                        if (startMessage == true)
+                        else
                         {
-                            eventText += Regex.Replace(line, @".*\<event-text\>", "");
+                            if (line.Contains(beginPattern))
+                            {
+                                eventText = string.Empty;
+                                startMessage = true;   
+                            }
+                            if (startMessage == true)
+                            {
+                                eventText += Regex.Replace(line, @".*\<event-text\>", "");
 
-                            foreach (var format in formatting)
-                            {
-                                eventText = Regex.Replace(eventText, format, " ");
+                                foreach (var format in formatting)
+                                {
+                                    eventText = Regex.Replace(eventText, format, " ");
+                                }
+                                if (line.EndsWith(endPattern) || eventText.Length > 1000)
+                                {
+                                    eventText = eventText.Replace(endPattern, "");
+                                    startMessage = false;
+                                    _speechExample.Synthesizer.SpeakAsync(eventText);
+                                }
                             }
-                            if (line.EndsWith(endPattern) || eventText.Length > 1000)
+                            // Update the UI
+                            Dispatcher.Invoke(() =>
                             {
-                                eventText = eventText.Replace(endPattern, "");
-                                startMessage = false;
-                                _speechExample.Synthesizer.SpeakAsync(eventText);
-                            }
+                                txtLastLine.Text = "Last read line: " + line;
+                                txtEvent.Text = "Event: " + eventText;
+                            });
                         }
 
-                        // Update the UI
-                        Dispatcher.Invoke(() =>
-                        {
-                            txtLastLine.Text = "Last read line: " + line;
-                            txtEvent.Text = "Event: " + eventText;
-                        });
                     }
      
                     if (startMessage == false)
@@ -344,7 +352,8 @@ namespace CK3_WPF_Reader
             Properties.Settings.Default.log = "error";
             Properties.Settings.Default.Save();
             ErrorButton.IsChecked = (Properties.Settings.Default.log == "error");
-            lblStatus.Content = "✔️ ready, reading " + Properties.Settings.Default.log + " log";
+            lblStatus.Text = "✔️ ready, reading " + Properties.Settings.Default.log + " log";
+            lblStatus.Foreground = Brushes.Green;
         }
 
         public void Debug_radio(object sender, RoutedEventArgs e)
@@ -352,34 +361,35 @@ namespace CK3_WPF_Reader
             Properties.Settings.Default.log = "debug";
             Properties.Settings.Default.Save();
             DebugButton.IsChecked = (Properties.Settings.Default.log == "debug");
-            lblStatus.Content = "✔️ ready, reading " + Properties.Settings.Default.log + " log";
+            lblStatus.Text = "✔️ ready, reading " + Properties.Settings.Default.log + " log";
+            lblStatus.Foreground = Brushes.Green;
         }
 
         private void speechSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             rate = (int)e.NewValue;
+            Properties.Settings.Default.Rate = rate;
+            Properties.Settings.Default.Save();
+            DisplayRate();
             if (_speechExample != null)
             {
                 _speechExample.Synthesizer.Rate = rate;
                 _speechExample.Synthesizer.SpeakAsyncCancelAll();
                 _speechExample.Synthesizer.SpeakAsync(PercentRate.ToString());
             }
-            Properties.Settings.Default.Rate = rate;
-            Properties.Settings.Default.Save();
-            DisplayRate();
         }
         private void volumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             volume = (int)e.NewValue;
+            Properties.Settings.Default.Volume = volume;
+            Properties.Settings.Default.Save();
+            DisplayVolume();
             if (_speechExample != null)
             {
                 _speechExample.Synthesizer.Volume = volume;
                 _speechExample.Synthesizer.SpeakAsyncCancelAll();
                 _speechExample.Synthesizer.SpeakAsync(volume.ToString());
             }
-            Properties.Settings.Default.Volume = volume;
-            Properties.Settings.Default.Save();
-            DisplayVolume();
         }
 
         public void VoiceBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
