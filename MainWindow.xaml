@@ -6,23 +6,58 @@
         xmlns:local="clr-namespace:CK3_WPF_Reader"
         xmlns:Synthesis="clr-namespace:System.Speech.Synthesis;assembly=System.Speech" x:Class="CK3_WPF_Reader.MainWindow"
         mc:Ignorable="d"
-        Title="CK3 Reader" Height="423" Width="354" FontSize="20">
-    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" CanVerticallyScroll="True" Grid.ColumnSpan="2" Margin="20,20,20,21" MinHeight="200" ScrollViewer.CanContentScroll="True">
-        <Label x:Name="lblStatus" Content="Loading..." Margin="0,0,0,5" Padding="0,5,0,5" FontSize="20"/>
-        <Label x:Name="SpeechRate" Content="Speech Rate:" Width="287" Padding="0,5,0,5"/>
-        <Slider x:Name="speechSlider" Minimum="-10" SmallChange="1" ValueChanged="speechSlider_ValueChanged" Value="5" TickPlacement="BottomRight"/>
-        <Label x:Name="SpeechVolume" Content="Speech Volume:" Width="287" Padding="0,5,0,5"/>
-        <Slider x:Name="volumeSlider" SmallChange="10" ValueChanged="volumeSlider_ValueChanged" Value="60" Maximum="100" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight"/>
-        <Label Content="Voice:" Width="287" Padding="0,5,0,5"/>
-        <Label x:Name="VoicesBox" Width="287" HorizontalAlignment="Left" Padding="0,5,0,5" Margin="0,0,0,5">
-            <ComboBox x:Name="VoiceBox" Width="287" SelectionChanged="VoiceBox_SelectionChanged">
-            </ComboBox>
-        </Label>
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-            <RadioButton x:Name="DebugButton" Content="Debug log" IsChecked="True" Margin="0,0,20,0" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
-            <RadioButton x:Name="ErrorButton" Content="Error log" Margin="0,0,20,0" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+        Title="CK3 Reader" Height="575" Width="823" FontSize="20" Closing="Window_closing" ScrollViewer.CanContentScroll="True">
+    
+    <Window.Resources>
+        <ResourceDictionary>
+            <RoutedUICommand x:Key="g" Text="stop talking"/>
+        </ResourceDictionary>
+    </Window.Resources>
+    
+    <Window.InputBindings>
+        <KeyBinding Key="g" Command="{StaticResource g}"/>
+    </Window.InputBindings>
+    
+    <Window.CommandBindings>
+        <CommandBinding Command="{StaticResource g}" Executed="StopTalkingG"/>
+    </Window.CommandBindings>
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Orientation="Horizontal" Margin="20,20,20,20">
+            <StackPanel MinHeight="200" Margin="0,0,15,0">
+                <StackPanel Orientation="Horizontal">
+                    <Label x:Name="lblStatus" Content="Loading..." Padding="0,5,0,5" FontSize="20" Margin="0,0,0,5"/>
+                    <TextBlock x:Name="txtCounter" TextWrapping="Wrap" Padding="5,5,5,5" FontSize="16" Opacity="0.5" VerticalAlignment="Bottom"/>
+                </StackPanel>
+                <Button x:Name="btnRestart" Content="Restart" Click="Restart_Click" Visibility="Collapsed"/>
+                <Button x:Name="btnStop" Content="Stop" Click="Stop_Click" Margin="0,5,0,15" Visibility="Collapsed"/>
+                <Button Content="Test text to speech" Click="Button_Click" Margin="0,0,0,10"/>
+                <Button x:Name="StopButton" Content="Stop talking (G)" Click="StopButton_Click" Margin="0,0,0,10" Command="{StaticResource g}"/>
+                <Label x:Name="SpeechRate" Content="Speech Rate:" Width="287" Padding="0,5,0,5"/>
+                <Slider x:Name="speechSlider" Minimum="-10" SmallChange="1" ValueChanged="speechSlider_ValueChanged" TickPlacement="BottomRight"/>
+                <Label x:Name="SpeechVolume" Content="Speech Volume:" Width="287" Padding="0,5,0,5"/>
+                <Slider x:Name="volumeSlider" SmallChange="10" ValueChanged="volumeSlider_ValueChanged" Maximum="100" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight"/>
+                <Label Content="Voice:" Width="287" Padding="0,5,0,5"/>
+                <Label x:Name="VoicesBox" Width="287" HorizontalAlignment="Left" Padding="0,5,0,5" Margin="0,0,0,5">
+                    <ComboBox x:Name="VoiceBox" Width="287" SelectionChanged="VoiceBox_SelectionChanged" Margin="0,0,0,5"/>
+                </Label>
+                <Label Content="Read events from:" Width="287" Padding="0,5,0,5"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                    <RadioButton x:Name="ErrorButton" Content="Error log" VerticalContentAlignment="Center" Margin="0,0,20,0" IsChecked="True" Click="Error_radio"/>
+                    <RadioButton x:Name="DebugButton" Content="Debug log" IsChecked="False" Margin="0,0,20,0" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Debug_radio"/>
+                </StackPanel>
+                <Label Content="Error log should be more reliable" Padding="0,5,0,5" Opacity="0.5" FontSize="16" HorizontalContentAlignment="Stretch" HorizontalAlignment="Left"/>
+                <Label x:Name="lblStatus_Copy" Content="Check every:" Padding="0,5,0,5" FontSize="20"/>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton x:Name="RefreshNormal" Content="100ms" VerticalContentAlignment="Center" Margin="0,0,20,0" IsChecked="True" Checked="RefreshNormal_Checked"/>
+                    <RadioButton x:Name="RefreshFast" Content="10ms" IsChecked="False" Margin="0,0,20,0" VerticalAlignment="Center" VerticalContentAlignment="Center" Checked="RefreshFast_Checked"/>
+                </StackPanel>
+            </StackPanel>
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            <StackPanel Width="459" Margin="15,0,0,0">
+                <TextBlock x:Name="txtEvent" TextWrapping="Wrap" Text="Waiting for an event, remember to press F in the game" Padding="5,5,5,5" FontSize="16"/>
+                <TextBlock x:Name="txtLastLine" TextWrapping="Wrap" Padding="5,5,5,5" FontSize="16" Opacity="0.5" Text=""/>
+            </StackPanel>
         </StackPanel>
-        <Label Content="Error log may be more responsive" Padding="0,5,0,5" Opacity="0.5" Margin="0,0,0,15" FontSize="16" HorizontalContentAlignment="Stretch" HorizontalAlignment="Left"/>
-        <Button Content="Test TTS" Click="Button_Click" Margin="0,0,0,10"/>
-    </StackPanel>
+    </ScrollViewer>
 </Window>
