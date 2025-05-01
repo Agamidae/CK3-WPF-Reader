@@ -75,6 +75,7 @@ namespace CK3_WPF_Reader
         string logPath = "";
         string errorLog = "";
         string debugLog = "";
+        string selectedLog = "";
 
         private CancellationTokenSource _cancellationTokenSource;
 
@@ -129,8 +130,9 @@ namespace CK3_WPF_Reader
             string logPath = documents + "\\Paradox Interactive\\Crusader Kings III\\logs\\";
             string errorLog = logPath + "error.log";
             string debugLog = logPath + "debug.log";
+            string selectedLog = logPath + Properties.Settings.Default.log + ".log";
 
-            if (System.IO.File.Exists(errorLog))
+            if (System.IO.File.Exists(selectedLog))
             {
                 lblStatus.Text = "✔️ ready, reading "+ Properties.Settings.Default.log + " log";
                 lblStatus.Foreground = Brushes.Green;
@@ -160,6 +162,7 @@ namespace CK3_WPF_Reader
             string logPath = documents + "\\Paradox Interactive\\Crusader Kings III\\logs\\";
             string errorLog = logPath + "error.log";
             string debugLog = logPath + "debug.log";
+            string selectedLog = logPath + Properties.Settings.Default.log + ".log";
             string beginPattern = "<event-text>";
             string endPattern = "</event-text>";
             string stopReading = "<stop reading>";
@@ -195,7 +198,7 @@ namespace CK3_WPF_Reader
 
             // Update the variable
 
-            using (FileStream stream = new FileStream(errorLog, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
+            using (FileStream stream = new FileStream(selectedLog, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
             {
                 StreamReader reader = new StreamReader(stream);
                 stream.Seek(0, SeekOrigin.End);
