@@ -49,7 +49,7 @@ public class SpeechExample
     }
 }
 
-namespace CK3_WPF_Reader
+namespace CK3_Reader
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -83,8 +83,8 @@ namespace CK3_WPF_Reader
         {
             InitializeComponent();
 
-            DebugButton.IsChecked = (Properties.Settings.Default.log == "debug");
-            ErrorButton.IsChecked = (Properties.Settings.Default.log == "error");
+            //DebugButton.IsChecked = (Properties.Settings.Default.log == "debug");
+            //ErrorButton.IsChecked = (Properties.Settings.Default.log == "error");
             rate = Properties.Settings.Default.Rate;
             volume = Properties.Settings.Default.Volume;
             volumeSlider.Value = Properties.Settings.Default.Volume;
@@ -130,11 +130,13 @@ namespace CK3_WPF_Reader
             string logPath = documents + "\\Paradox Interactive\\Crusader Kings III\\logs\\";
             string errorLog = logPath + "error.log";
             string debugLog = logPath + "debug.log";
-            string selectedLog = logPath + Properties.Settings.Default.log + ".log";
+            //string selectedLog = logPath + Properties.Settings.Default.log + ".log";
+            string selectedLog = debugLog;
 
             if (System.IO.File.Exists(selectedLog))
             {
-                lblStatus.Text = "✔️ ready, reading "+ Properties.Settings.Default.log + " log";
+                //lblStatus.Text = "✔️ ready, reading "+ Properties.Settings.Default.log + " log";
+                lblStatus.Text = "✔️ ready, reading game log";
                 lblStatus.Foreground = Brushes.Green;
 
             }
@@ -151,6 +153,7 @@ namespace CK3_WPF_Reader
         private async void Restart_Click(object sender, RoutedEventArgs e)
         {
             _cancellationTokenSource = new CancellationTokenSource();
+            StopLoop();
             await Task.Run(() => RunLoop(_cancellationTokenSource.Token));
         }
 
@@ -162,14 +165,17 @@ namespace CK3_WPF_Reader
             string logPath = documents + "\\Paradox Interactive\\Crusader Kings III\\logs\\";
             string errorLog = logPath + "error.log";
             string debugLog = logPath + "debug.log";
-            string selectedLog = logPath + Properties.Settings.Default.log + ".log";
+            //string selectedLog = logPath + Properties.Settings.Default.log + ".log";
+            string selectedLog = debugLog;
             string beginPattern = "<event-text>";
             string endPattern = "</event-text>";
             string stopReading = "<stop reading>";
             string eventText = "";
             bool startMessage = false;
             string[] formatting = [
-                @"\bL\b",
+                @"\bL\b",
+                @"indent_newline:\d",
+                @"TOOLTIP:SCALED_STATIC_MODIFIER,\w+,\d+\.\d+,\w+,\w+",
                 @"TOOLTIP:\w+,\w+,\d+",
                 @"ONCLICK:\w+,\d+",
                 @"ONCLICK:\w+,\w+",
@@ -179,7 +185,11 @@ namespace CK3_WPF_Reader
                 @"negative_value",
                 @"COLOR_\w_\w",
                 @"COLOR_\w",
-                @"_icon",
+                @"portrait_punishment_icon!",
+                @"death_icon!",
+                @"skill_\w+_icon!",
+                @"_icon_\w+!",
+                @"_icon!",
                 @"skill_",
                 @"\w+ ",
                 @"\w;",
@@ -223,6 +233,7 @@ namespace CK3_WPF_Reader
                 {
                     line = reader.ReadLine();
 
+                    // this is just a little counter showing that it's reading lines, no other effect
                     counter += ".";
                     if (counter.Length > 6)
                     {
@@ -251,32 +262,36 @@ namespace CK3_WPF_Reader
                             }
                             if (startMessage == true)
                             {
+                                eventText += "\n";
                                 eventText += Regex.Replace(line, @".*\<event-text\>", "");
 
                                 foreach (var format in formatting)
                                 {
                                     eventText = Regex.Replace(eventText, format, " ");
                                 }
-                                if (line.EndsWith(endPattern) || eventText.Length > 1000)
+                                if (line.EndsWith(endPattern) || eventText.Length > 10000)
                                 {
                                     eventText = eventText.Replace(endPattern, "");
                                     startMessage = false;
                                     _speechExample.Synthesizer.SpeakAsync(eventText);
                                 }
                             }
-                            // Update the UI
-                            Dispatcher.Invoke(() =>
-                            {
-                                txtLastLine.Text = "Last read line: " + line;
-                                txtEvent.Text = "Event: " + eventText;
-                            });
                         }
 
+                        // Update the UI
+                        Dispatcher.Invoke(() =>
+                        {
+                            txtLastLine.Text = "Last read line: " + line;
+                            txtEvent.Text = "Event: " + eventText;
+                        });
                     }
-     
+
+                    // If we haven't found an event, we wait 100ms (or 10)
+                    // Without this it would be way too fast and eat up CPU
                     if (startMessage == false)
                     {
                         Thread.Sleep(Properties.Settings.Default.refresh);
+                        //Thread.Sleep(10);
                     }
 
                     Dispatcher.Invoke(() =>
@@ -418,16 +433,16 @@ namespace CK3_WPF_Reader
 
         private void RefreshNormal_Checked(object sender, RoutedEventArgs e)
         {
-            Properties.Settings.Default.refresh = 100;
+            Properties.Settings.Default.refresh = 20;
             Properties.Settings.Default.Save();
-            RefreshNormal.IsChecked = (Properties.Settings.Default.refresh == 100);
+            RefreshNormal.IsChecked = (Properties.Settings.Default.refresh == 20);
         }
 
         private void RefreshFast_Checked(object sender, RoutedEventArgs e)
         {
-            Properties.Settings.Default.refresh = 10;
+            Properties.Settings.Default.refresh = 5;
             Properties.Settings.Default.Save();
-            RefreshFast.IsChecked = (Properties.Settings.Default.refresh == 10);
+            RefreshFast.IsChecked = (Properties.Settings.Default.refresh == 5);
         }
 
         public void StopTalkingG(Object sender, ExecutedRoutedEventArgs e)
