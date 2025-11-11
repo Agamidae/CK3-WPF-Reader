@@ -19,6 +19,10 @@ using System.Threading.Tasks;
 using System.IO.Pipes;
 using System.Text.RegularExpressions;
 using System.DirectoryServices.ActiveDirectory;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
+using System.Diagnostics;
+
 
 
 public class SpeechExample
@@ -66,6 +70,9 @@ namespace CK3_Reader
         string voice = "";
         bool launched = false;
         bool reading = true;
+        bool clipAll = false;
+        bool textShow = true;
+        bool lineShow = true;
 
         private SpeechExample _speechExample;
 
@@ -77,11 +84,162 @@ namespace CK3_Reader
         string debugLog = "";
         string selectedLog = "";
 
+        string line = "";
+        string eventText = "";
+        string[] formatting = [
+            @"\bL\b",
+                @"indent_newline:\d",
+                @"TOOLTIP:SCALED_STATIC_MODIFIER,\w+,\d+\.\d+,\w+,\w+",
+                @"TOOLTIP:\w+,\w+,\d+",
+                @"ONCLICK:\w+,\d+",
+                @"ONCLICK:\w+,\w+",
+                @"TOOLTIP:\w+,\w+",
+                @"TOOLTIP:\w+,\d+",
+                @"positive_value",
+                @"negative_value",
+                @"COLOR_\w_\w",
+                @"COLOR_\w",
+                @"portrait_punishment_icon!",
+                @"death_icon!",
+                @"skill_\w+_icon!",
+                @"_icon_\w+!",
+                @"_icon!",
+                @"skill_",
+                @"\w+ ",
+                @"\w;",
+                @"\w+",
+                @". ",
+                @".",
+                @"!",
+                @"\w;",
+                @";",
+                @"stress_\w+",
+                @"_",
+                "   ",
+                "  "
+        ];
+
         private CancellationTokenSource _cancellationTokenSource;
+
+        // Win32 API constants and imports for hotkeys
+        const int WM_HOTKEY = 0x0312;
+
+        [DllImport("user32.dll")]
+        public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+        [DllImport("user32.dll")]
+        public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        // Win32 API imports for getting the active window title
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+        public static string GetActiveWindowTitle()
+        {
+            const int nChars = 256;
+            StringBuilder Buff = new StringBuilder(nChars);
+            IntPtr handle = GetForegroundWindow();
+
+            if (GetWindowText(handle, Buff, nChars) > 0)
+            {
+                return Buff.ToString();
+            }
+            return null;
+        }
+
+        // Win32 API constants and imports
+        private const int WM_CLIPBOARDUPDATE = 0x031D;
+
+        [DllImport("user32.dll")]
+        private static extern bool AddClipboardFormatListener(IntPtr hwnd);
+
+
+        [DllImport("user32.dll")]
+        private static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
+
+        private HwndSource _hwndSource;
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            _hwndSource = PresentationSource.FromVisual(this) as HwndSource;
+            _hwndSource.AddHook(WndProc);
+            AddClipboardFormatListener(_hwndSource.Handle);
+            var helper = new WindowInteropHelper(this);
+            RegisterHotKey(helper.Handle, 1, 0x1, 0x43); //Alt C
+            HwndSource source = HwndSource.FromHwnd(helper.Handle);
+            source.AddHook(HwndHook);
+        }
+
+        private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WM_HOTKEY)
+            {
+                int id = wParam.ToInt32();
+                if (id == 1)
+                {
+                    // CTRL + G was pressed
+                    StopSpeech();
+                }
+                handled = true;
+            }
+            return IntPtr.Zero;
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            RemoveClipboardFormatListener(_hwndSource.Handle);
+            base.OnClosed(e);
+            var helper = new WindowInteropHelper(this);
+            UnregisterHotKey(helper.Handle, 1);
+        }
+
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WM_CLIPBOARDUPDATE)
+            {
+                if (Clipboard.ContainsText())
+                {
+
+                    string activeTitle = GetActiveWindowTitle();
+                    if ( clipAll == true || ( activeTitle == "Crusader Kings III" || activeTitle == "Europa Universalis V") )
+                    {
+                        StopSpeech();
+
+                        string clipboardText = Clipboard.GetText();
+                        eventText = clipboardText;
+                        eventText += "\n";
+
+                        foreach (var format in formatting)
+                        {
+                            eventText = Regex.Replace(eventText, format, " ");
+                        }
+
+                        // Update the UI
+                        Dispatcher.Invoke(() =>
+                        {
+                            txtLastLine.Text = "Copied from clipbard";
+                            txtEvent.Text = eventText;
+                        });
+                        _speechExample.Synthesizer.SpeakAsync(eventText);
+                    }
+
+                }
+                handled = true;
+            }
+            return IntPtr.Zero;
+        }
+
 
         public MainWindow()
         {
             InitializeComponent();
+
+            ShowTextCheckbox.IsChecked = true;
+            ShowLastLineCheckbox.IsChecked = true;
 
             //DebugButton.IsChecked = (Properties.Settings.Default.log == "debug");
             //ErrorButton.IsChecked = (Properties.Settings.Default.log == "error");
@@ -160,7 +318,6 @@ namespace CK3_Reader
         private void RunLoop(CancellationToken token)
         {
             string counter = string.Empty;
-            string line = "";
             string documents = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string logPath = documents + "\\Paradox Interactive\\Crusader Kings III\\logs\\";
             string errorLog = logPath + "error.log";
@@ -170,40 +327,7 @@ namespace CK3_Reader
             string beginPattern = "<event-text>";
             string endPattern = "</event-text>";
             string stopReading = "<stop reading>";
-            string eventText = "";
             bool startMessage = false;
-            string[] formatting = [
-                @"\bL\b",
-                @"indent_newline:\d",
-                @"TOOLTIP:SCALED_STATIC_MODIFIER,\w+,\d+\.\d+,\w+,\w+",
-                @"TOOLTIP:\w+,\w+,\d+",
-                @"ONCLICK:\w+,\d+",
-                @"ONCLICK:\w+,\w+",
-                @"TOOLTIP:\w+,\w+",
-                @"TOOLTIP:\w+,\d+",
-                @"positive_value",
-                @"negative_value",
-                @"COLOR_\w_\w",
-                @"COLOR_\w",
-                @"portrait_punishment_icon!",
-                @"death_icon!",
-                @"skill_\w+_icon!",
-                @"_icon_\w+!",
-                @"_icon!",
-                @"skill_",
-                @"\w+ ",
-                @"\w;",
-                @"\w+",
-                @". ",
-                @".",
-                @"!",
-                @"\w;",
-                @";",
-                @"stress_\w+",
-                @"_",
-                "   ",
-                "  "
-            ];
 
 
             // Update the variable
@@ -282,7 +406,7 @@ namespace CK3_Reader
                         Dispatcher.Invoke(() =>
                         {
                             txtLastLine.Text = "Last read line: " + line;
-                            txtEvent.Text = "Event: " + eventText;
+                            txtEvent.Text = eventText;
                         });
                     }
 
@@ -431,6 +555,16 @@ namespace CK3_Reader
             StopLoop();
         }
 
+        public void Clip_Checked(object sender, RoutedEventArgs e)
+        {
+            clipAll = false;
+        }
+
+        public void Clip_Unchecked(object sender, RoutedEventArgs e)
+        {
+            clipAll = true;
+        }
+
         private void RefreshNormal_Checked(object sender, RoutedEventArgs e)
         {
             Properties.Settings.Default.refresh = 20;
@@ -448,6 +582,26 @@ namespace CK3_Reader
         public void StopTalkingG(Object sender, ExecutedRoutedEventArgs e)
         {
             StopSpeech();
+        }
+
+        private void Line_Checked(object sender, RoutedEventArgs e)
+        {
+            txtLastLine.Visibility = Visibility.Visible;
+        }
+        private void Line_Unchecked(object sender, RoutedEventArgs e)
+        {
+            txtLastLine.Visibility = Visibility.Collapsed;
+        }
+
+        private void Text_Checked(object sender, RoutedEventArgs e)
+        {
+            RightScrollbox.Visibility = Visibility.Visible;
+            this.Width = 830;
+        }
+        private void Text_Unchecked(object sender, RoutedEventArgs e)
+        {
+            RightScrollbox.Visibility = Visibility.Collapsed;
+            this.Width = 360;
         }
     }
 }

@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:CK3_Reader"
         xmlns:Synthesis="clr-namespace:System.Speech.Synthesis;assembly=System.Speech" x:Class="CK3_Reader.MainWindow"
         mc:Ignorable="d"
-        Title="CK3 Reader" Height="550" Width="830" FontSize="20" Closing="Window_closing" ScrollViewer.CanContentScroll="True">
+        Title="CK3 Reader" Height="610" Width="830" FontSize="20" Closing="Window_closing" ScrollViewer.CanContentScroll="True">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -23,16 +23,16 @@
     </Window.CommandBindings>
 
     <Grid>
-        <ScrollViewer Width="320" HorizontalAlignment="Left" VerticalScrollBarVisibility="Auto" Margin="20,20,0,20" BorderThickness="0,0,1,0">
-            <StackPanel MinHeight="200" CanVerticallyScroll="True" Width="300" HorizontalAlignment="Left">
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+        <ScrollViewer x:Name="LeftScrollbox" Width="320" HorizontalAlignment="Left" VerticalScrollBarVisibility="Auto" Margin="20,20,0,20" BorderThickness="0,0,1,0">
+            <StackPanel x:Name="LeftPanel" MinHeight="200" CanVerticallyScroll="True" Width="300" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal">
                     <TextBlock x:Name="lblStatus" TextWrapping="Wrap" Text="Loading" Focusable="True" KeyboardNavigation.IsTabStop="True"/>
                     <TextBlock x:Name="txtCounter" TextWrapping="Wrap" Padding="5,5,5,5" FontSize="16" Opacity="0.5" VerticalAlignment="Bottom" Foreground="#FFC1C1C1"/>
                 </StackPanel>
                 <Button x:Name="btnRestart" Content="Restart" Click="Restart_Click" Visibility="Collapsed"/>
                 <Button x:Name="btnStop" Content="Stop" Click="Stop_Click" Margin="0,5,0,15" Visibility="Collapsed"/>
                 <Button Content="Test text to speech" Click="Button_Click" Margin="0,0,0,10"/>
-                <Button x:Name="StopButton" Content="Stop talking (G)" Click="StopButton_Click" Margin="0,0,0,10" Command="{StaticResource g}"/>
+                <Button x:Name="StopButton" Content="Stop talking (Alt+C)" Click="StopButton_Click" Margin="0,0,0,10" Command="{StaticResource g}"/>
                 <Label x:Name="SpeechRate" Content="Speech Rate:" Width="287" Padding="0,5,0,5" Focusable="True" KeyboardNavigation.IsTabStop="True"/>
                 <Slider x:Name="speechSlider" Minimum="-10" SmallChange="1" ValueChanged="speechSlider_ValueChanged" TickPlacement="BottomRight"/>
                 <Label x:Name="SpeechVolume" Content="Speech Volume:" Width="287" Padding="0,5,0,5" Focusable="True" KeyboardNavigation.IsTabStop="True"/>
@@ -59,15 +59,20 @@
                     </StackPanel>
                     <TextBlock x:Name="Refresh_tip" TextWrapping="Wrap" Padding="5,5,5,5" FontSize="16" Opacity="0.5" Text="Faster refresh rate will reduce a delay before an event is read but will use slightly more of your CPU" Focusable="True" KeyboardNavigation.IsTabStop="True"/>
                 </StackPanel>
+                <CheckBox x:Name="ClipCheckbox" Content="Use clipboard only in games" IsChecked="True" Checked="Clip_Checked" Unchecked="Clip_Unchecked" RenderTransformOrigin="0.5,0.5" VerticalContentAlignment="Center" Margin="0,10,0,5" ToolTip="When unchecked, will read any text copied to clipboard"/>
+                <StackPanel Height="30" Orientation="Horizontal" Width="300">
+                    <CheckBox x:Name="ShowTextCheckbox" Content="Right panel" Checked="Text_Checked" Unchecked="Text_Unchecked" RenderTransformOrigin="0.5,0.5" VerticalContentAlignment="Center" ToolTip="Show right panel" Margin="0,0,25,0"/>
+                    <CheckBox x:Name="ShowLastLineCheckbox" Content="Last line" Checked="Line_Checked" Unchecked="Line_Unchecked" RenderTransformOrigin="0.5,0.5" VerticalContentAlignment="Center" ToolTip="Show the last line read from the debug log"/>
+                </StackPanel>
                 <StackPanel x:Name="Stop_Reset" Orientation="Vertical" Visibility="Collapsed">
                     <Button Content="Stop" Click="Stop_Click"/>
                     <Button Content="Restart" Click="Restart_Click"/>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#FFF7F7F7" UseLayoutRounding="True" Margin="345,20,20,20" BorderBrush="Black">
+        <ScrollViewer x:Name="RightScrollbox" VerticalScrollBarVisibility="Auto" Background="#FFF7F7F7" UseLayoutRounding="True" Margin="345,20,20,20" BorderBrush="Black">
             <StackPanel Margin="5,0,0,0">
-                <TextBlock x:Name="txtEvent" TextWrapping="Wrap" Text="Waiting, press F in the game when you get an event" Padding="5,5,5,5" FontSize="18" Focusable="True" KeyboardNavigation.IsTabStop="True"/>
+                <TextBlock x:Name="txtEvent" TextWrapping="Wrap" Text="New feature! Double click any text in game and press Control C. The reader will read it from your clipboard!  Or press F when you get an event" Padding="5,5,5,5" FontSize="18" Focusable="True" KeyboardNavigation.IsTabStop="True"/>
                 <TextBlock x:Name="txtLastLine" TextWrapping="Wrap" Padding="5,5,5,5" FontSize="16" Opacity="0.5" Text="" Focusable="True" KeyboardNavigation.IsTabStop="True"><Rectangle/></TextBlock>
             </StackPanel>
         </ScrollViewer>
