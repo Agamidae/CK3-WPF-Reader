@@ -205,7 +205,7 @@ namespace CK3_Reader
                 {
 
                     string activeTitle = GetActiveWindowTitle();
-                    if ( clipAll == true || ( activeTitle == "Crusader Kings III" || activeTitle == "Europa Universalis V") )
+                    if ( clipAll == true || ( activeTitle == "Crusader Kings III" || activeTitle == "Europa Universalis V" || activeTitle == "Imperator" ) )
                     {
                         StopSpeech();
 
